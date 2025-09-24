@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import Table from "./Table";
-import Swal from "sweetalert2";
 import { db } from "../config/firebase";
 import {
   collection,
@@ -10,6 +9,7 @@ import {
   doc,
   onSnapshot
 } from "firebase/firestore";
+import { toast } from "react-toastify";
 
 const Todo = () => {
   const inputRef = useRef(null);
@@ -18,7 +18,6 @@ const Todo = () => {
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [textValue, setTextValue] = useState("");
 
-  // Firestore reference
   const taskCollection = collection(db, "tasks");
 
   const handleInputChange = (e) => {
@@ -26,34 +25,68 @@ const Todo = () => {
   };
 
   const addTask = async () => {
-    const inputValue = textValue.trim();
+    try {
+      const inputValue = textValue.trim();
+      if (!inputValue) {
+        toast.error("Task is not defined!");
+        return;
+      }
 
-    if (!inputValue) {
-      Swal.fire("Oops!", "Task Is Not Defined!", "error");
-      return;
+      await addDoc(taskCollection, {
+        taskName: inputValue,
+        isComplete: false,
+        createdAt: Date.now(),
+      });
+
+      toast.success("Task added successfully!");
+      setTextValue("");
+      inputRef.current.value = "";
+    } catch (error) {
+      toast.error(error.message);
     }
-
-    await addDoc(taskCollection, {
-      taskName: inputValue,
-      isComplete: false,
-      createdAt: Date.now(),
-    });
-
-    setTextValue("");
-    inputRef.current.value = "";
   };
 
   const clearAll = async () => {
-    const promises = tasks.map((task) => deleteDoc(doc(db, "tasks", task.id)));
-    await Promise.all(promises);
+    try {
+      const promises = tasks.map((task) => deleteDoc(doc(db, "tasks", task.id)));
+      await Promise.all(promises);
+      toast.success("All tasks cleared!");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   const markAsComplete = async (id) => {
-    const taskRef = doc(db, "tasks", id);
-    await updateDoc(taskRef, { isComplete: true });
+    try {
+      const taskRef = doc(db, "tasks", id);
+      await updateDoc(taskRef, { isComplete: true });
+      toast.info("Task marked as completed!");
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
-  // Realtime listener from Firestore
+  const deleteTask = async (id) => {
+    try {
+      const taskRef = doc(db, "tasks", id);
+      await deleteDoc(taskRef);
+      toast.success("Task deleted!");
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const editTask = async (id, newName) => {
+    try {
+      const taskRef = doc(db, "tasks", id);
+      await updateDoc(taskRef, { taskName: newName });
+      toast.success("Task updated!");
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+
   useEffect(() => {
     const unsubscribe = onSnapshot(taskCollection, (snapshot) => {
       const taskList = snapshot.docs.map((doc) => ({
@@ -66,7 +99,7 @@ const Todo = () => {
     return () => unsubscribe();
   }, []);
 
-  // Apply filter locally
+
   useEffect(() => {
     let updatedTasks = [];
     if (filter === "all") updatedTasks = tasks;
@@ -80,7 +113,7 @@ const Todo = () => {
     <div className="flex items-center justify-center min-h-screen bg-blue-300 px-4">
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
         <h1 className="text-center text-2xl font-bold text-black mb-6">
-          ToDo List 📝 (Firebase)
+          ToDo List 📝
         </h1>
 
         <div className="flex gap-2 mb-6">
@@ -106,11 +139,10 @@ const Todo = () => {
             <button
               key={type}
               onClick={() => setFilter(type)}
-              className={`px-4 py-1 rounded-full text-sm font-medium ${
-                filter === type
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-100 text-gray-800"
-              }`}
+              className={`px-4 py-1 rounded-full text-sm font-medium ${filter === type
+                ? "bg-purple-600 text-white"
+                : "bg-gray-100 text-gray-800"
+                }`}
             >
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
@@ -131,6 +163,8 @@ const Todo = () => {
                   name={task.taskName}
                   complete={task.isComplete}
                   onComplete={markAsComplete}
+                  onDelete={deleteTask}
+                  onEdit={editTask}
                 />
               ))}
             </ul>
