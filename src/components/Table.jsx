@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
@@ -9,13 +10,20 @@ const Table = ({ id, name, complete, onComplete, onDelete, onEdit }) => {
     if (editValue.trim() !== "") {
       onEdit(id, editValue);
       setIsEditing(false);
-    }else{
+    } else {
       toast.error("Task name cannot be empty!");
     }
   };
 
   return (
-    <li className="flex justify-between items-center bg-gray-100 rounded p-2">
+    <motion.li
+      initial={{ opacity: 0, y: -10 }} 
+      animate={{ opacity: 1, y: 0 }}     
+      exit={{ opacity: 0, y: 10 }}       
+      transition={{ duration: 0.3 }}
+      layout
+      className="flex justify-between items-center bg-gray-100 rounded p-2"
+    >
       {isEditing ? (
         <input
           type="text"
@@ -62,7 +70,7 @@ const Table = ({ id, name, complete, onComplete, onDelete, onEdit }) => {
           🗑️
         </button>
       </div>
-    </li>
+    </motion.li>
   );
 };
 
