@@ -1,16 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Table from "./Table";
-import { db } from "../config/firebase";
-import {
-  collection,
-  addDoc,
-  deleteDoc,
-  updateDoc,
-  doc,
-  onSnapshot,
-} from "firebase/firestore";
 import { toast } from "react-toastify";
 import { AnimatePresence, motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+import { addTask, fetchTask } from "../features/todos/todoSlice";
 
 const Todo = () => {
   const inputRef = useRef(null);
@@ -18,86 +11,19 @@ const Todo = () => {
   const [filter, setFilter] = useState("all");
   const [filteredTasks, setFilteredTasks] = useState([]);
   const [textValue, setTextValue] = useState("");
+  const dispatch = useDispatch()
 
-  const taskCollection = collection(db, "tasks");
+  const { Data, isLoading } = useSelector(store => {
+    return store.task
+  })
+  console.log(Data, isLoading);
+
+
 
   const handleInputChange = (e) => {
     setTextValue(e.target.value);
   };
 
-  const addTask = async () => {
-    try {
-      const inputValue = textValue.trim();
-      if (!inputValue) {
-        toast.error("Task is not defined!");
-        return;
-      }
-
-      await addDoc(taskCollection, {
-        taskName: inputValue,
-        isComplete: false,
-        createdAt: Date.now(),
-      });
-
-      toast.success("Task added successfully!");
-      setTextValue("");
-      inputRef.current.value = "";
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const clearAll = async () => {
-    try {
-      const promises = tasks.map((task) => deleteDoc(doc(db, "tasks", task.id)));
-      await Promise.all(promises);
-      toast.success("All tasks cleared!");
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const markAsComplete = async (id) => {
-    try {
-      const taskRef = doc(db, "tasks", id);
-      await updateDoc(taskRef, { isComplete: true });
-      toast.info("Task marked as completed!");
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const deleteTask = async (id) => {
-    try {
-      const taskRef = doc(db, "tasks", id);
-      await deleteDoc(taskRef);
-      toast.success("Task deleted!");
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const editTask = async (id, newName) => {
-    try {
-      const taskRef = doc(db, "tasks", id);
-      await updateDoc(taskRef, { taskName: newName });
-      toast.success("Task updated!");
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  useEffect(() => {
-    const unsubscribe = onSnapshot(taskCollection, (snapshot) => {
-      const taskList = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTasks(taskList);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   useEffect(() => {
     let updatedTasks = [];
@@ -107,6 +33,9 @@ const Todo = () => {
 
     setFilteredTasks(updatedTasks);
   }, [tasks, filter]);
+  useEffect(() => {
+    dispatch(fetchTask());
+  }, [dispatch]);
 
   return (
     <motion.div
@@ -145,7 +74,22 @@ const Todo = () => {
             whileTap={{ scale: 0.9 }}
             whileHover={{ scale: 1.1, rotate: 5 }}
             type="button"
-            onClick={addTask}
+            onClick={() => {
+              const inputValue = textValue.trim();
+              if (!inputValue) {
+                toast.error("Task is not defined!");
+                return;
+              }
+
+              dispatch(addTask({
+                taskName: inputValue,
+                isComplete: false,
+                createdAt: Date.now(),
+              }));
+
+              setTextValue("");
+              inputRef.current.value = "";
+            }}
             className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full shadow-md"
           >
             ➕
@@ -172,7 +116,7 @@ const Todo = () => {
         </div>
 
         <div className="h-[270px] overflow-scroll">
-          {filteredTasks.length === 0 ? (
+          {Data.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1, y: [0, -10, 0] }}
@@ -184,15 +128,15 @@ const Todo = () => {
           ) : (
             <ul className="space-y-3">
               <AnimatePresence>
-                {filteredTasks.map((task) => (
+                {Data.map((task) => (
                   <Table
                     key={task.id}
                     id={task.id}
                     name={task.taskName}
                     complete={task.isComplete}
-                    onComplete={markAsComplete}
-                    onDelete={deleteTask}
-                    onEdit={editTask}
+                  // onComplete={markAsComplete}
+                  // onDelete={deleteTask}
+                  // onEdit={editTask}
                   />
                 ))}
               </AnimatePresence>
@@ -200,13 +144,13 @@ const Todo = () => {
           )}
         </div>
 
-        {filteredTasks.length > 0 && (
+        {Data.length > 0 && (
           <div className="text-center py-2">
             <motion.button
               whileHover={{ rotate: [0, 2, -2, 0] }}
               transition={{ duration: 0.3 }}
               className="bg-red-600 hover:bg-red-700 rounded p-2 text-white"
-              onClick={clearAll}
+            // onClick={clearAll}
             >
               Delete All
             </motion.button>
