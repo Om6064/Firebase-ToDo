@@ -53,7 +53,6 @@ const Todo = () => {
           ToDo List 📝
         </h1>
 
-        {/* Input */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -99,7 +98,6 @@ const Todo = () => {
           </motion.button>
         </motion.div>
 
-        {/* Filter Buttons */}
         <div className="flex justify-center mb-6 space-x-2">
           {["all", "pending", "completed"].map((type) => (
             <motion.button
@@ -119,7 +117,6 @@ const Todo = () => {
           ))}
         </div>
 
-        {/* Task List with Loader */}
         <div className="h-[270px] overflow-y-scroll">
           {isLoading ? (
             <motion.div
@@ -233,7 +230,6 @@ const Todo = () => {
           )}
         </div>
 
-        {/* Delete All */}
         {Data.length > 0 && !isLoading && (
           <div className="text-center py-2">
             <motion.button
